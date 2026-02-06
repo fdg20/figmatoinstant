@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { InstantBlueprint } from '@/types/instant';
 import { formatBlueprintForDisplay } from '@/lib/parser';
 import { blueprintToMarkdown } from '@/lib/export/markdown';
+import PreviewRenderer from './PreviewRenderer';
 
 interface BlueprintDisplayProps {
   blueprint: InstantBlueprint | null;
@@ -49,42 +50,6 @@ export default function BlueprintDisplay({ blueprint }: BlueprintDisplayProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">Instant Builder Blueprint</h3>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode('blueprint')}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-              viewMode === 'blueprint'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Blueprint View
-          </button>
-          <button
-            onClick={() => setViewMode('markdown')}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-              viewMode === 'markdown'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Markdown
-          </button>
-          <button
-            onClick={() => setViewMode('json')}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-              viewMode === 'json'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            JSON
-          </button>
-        </div>
-      </div>
-
       {blueprint.metadata && (
         <div className="mb-4 p-3 bg-gray-50 rounded text-sm text-gray-600">
           <div><strong>Frame:</strong> {blueprint.metadata.figmaFrameName}</div>
@@ -92,53 +57,100 @@ export default function BlueprintDisplay({ blueprint }: BlueprintDisplayProps) {
         </div>
       )}
 
-      <div className="flex-1 overflow-auto border rounded-lg p-4 bg-gray-50">
-        {viewMode === 'blueprint' && (
-          <pre className="text-sm font-mono text-gray-800 whitespace-pre-wrap">
-            {blueprintOutput}
-          </pre>
-        )}
-        {viewMode === 'markdown' && (
-          <pre className="text-sm font-mono text-gray-800 whitespace-pre-wrap">
-            {markdownOutput}
-          </pre>
-        )}
-        {viewMode === 'json' && (
-          <pre className="text-sm font-mono text-gray-800 whitespace-pre-wrap">
-            {jsonOutput}
-          </pre>
-        )}
-      </div>
+      {/* Split Screen Layout */}
+      <div className="flex-1 flex gap-4 overflow-hidden">
+        {/* Left: Visual Preview */}
+        <div className="flex-1 overflow-auto border rounded-lg p-6 bg-white">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Visual Preview</h3>
+          <div className="min-h-full">
+            <PreviewRenderer tree={blueprint.root} />
+          </div>
+        </div>
 
-      <div className="mt-4 flex gap-2">
-        {viewMode === 'markdown' && (
-          <button
-            onClick={handleDownloadMarkdown}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            Download Markdown
-          </button>
-        )}
-        {viewMode === 'json' && (
-          <button
-            onClick={handleDownloadJSON}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            Download JSON
-          </button>
-        )}
-        <button
-          onClick={() => {
-            const text = viewMode === 'markdown' ? markdownOutput : 
-                       viewMode === 'json' ? jsonOutput : 
-                       blueprintOutput;
-            navigator.clipboard.writeText(text);
-            alert('Blueprint copied to clipboard!');
-          }}
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-        >
-          Copy {viewMode === 'markdown' ? 'Markdown' : viewMode === 'json' ? 'JSON' : 'Blueprint'}
-        </button>
+        {/* Right: Tabs */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Instant Blueprint</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('blueprint')}
+                className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                  viewMode === 'blueprint'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Instant Blueprint
+              </button>
+              <button
+                onClick={() => setViewMode('markdown')}
+                className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                  viewMode === 'markdown'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Markdown
+              </button>
+              <button
+                onClick={() => setViewMode('json')}
+                className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                  viewMode === 'json'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                JSON
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-auto border rounded-lg p-4 bg-gray-50">
+            {viewMode === 'blueprint' && (
+              <pre className="text-sm font-mono text-gray-800 whitespace-pre-wrap">
+                {blueprintOutput}
+              </pre>
+            )}
+            {viewMode === 'markdown' && (
+              <pre className="text-sm font-mono text-gray-800 whitespace-pre-wrap">
+                {markdownOutput}
+              </pre>
+            )}
+            {viewMode === 'json' && (
+              <pre className="text-sm font-mono text-gray-800 whitespace-pre-wrap">
+                {jsonOutput}
+              </pre>
+            )}
+          </div>
+
+          {/* Export Buttons */}
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={handleDownloadMarkdown}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              Download Markdown
+            </button>
+            <button
+              onClick={handleDownloadJSON}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              Download JSON
+            </button>
+            <button
+              onClick={() => {
+                const text = viewMode === 'markdown' ? markdownOutput : 
+                           viewMode === 'json' ? jsonOutput : 
+                           blueprintOutput;
+                navigator.clipboard.writeText(text);
+                alert('Blueprint copied to clipboard!');
+              }}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+            >
+              Copy {viewMode === 'markdown' ? 'Markdown' : viewMode === 'json' ? 'JSON' : 'Blueprint'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

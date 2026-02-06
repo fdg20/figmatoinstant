@@ -143,7 +143,7 @@ export default function Home() {
 
         {/* Main Content */}
         {frames.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[600px]">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[800px]">
             {/* Left Side: Frame Tree */}
             <div className="bg-white rounded-lg shadow-md p-6 overflow-hidden flex flex-col">
               <FrameTree
@@ -153,8 +153,8 @@ export default function Home() {
               />
             </div>
 
-            {/* Right Side: Blueprint Display */}
-            <div className="bg-white rounded-lg shadow-md p-6 overflow-hidden flex flex-col">
+            {/* Right Side: Blueprint Display (takes 2 columns) */}
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6 overflow-hidden flex flex-col">
               {loading && selectedFrame ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
