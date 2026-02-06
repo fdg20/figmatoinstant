@@ -1,6 +1,6 @@
 # Figma → Instant Builder Blueprint
 
-A web-based tool that connects to the Figma API, reads a selected Frame that uses Auto-layout, and converts it into a structured "Instant Builder Blueprint" describing exactly how to recreate the design using Instant.so sections, rows, columns, text blocks, images, spacing, and buttons.
+A web-based tool that parses local Figma .fig files, reads a selected Frame that uses Auto-layout, and converts it into a structured "Instant Builder Blueprint" describing exactly how to recreate the design using Instant.so sections, rows, columns, text blocks, images, spacing, and buttons.
 
 ## Getting Started
 
@@ -23,15 +23,15 @@ npm run dev:3001
 
 ## Usage
 
-1. Paste your Figma File URL
-2. Paste your Figma Personal Access Token
-3. Click "Load Frames" to fetch frames from the file
-4. Select a frame from the list
-5. View the generated Instant Builder Blueprint
+1. In Figma: File → Save local copy (.fig)
+2. Upload your .fig file using the file input
+3. Select a frame from the list
+4. View the generated Instant Builder Blueprint
 
 ## Features
 
-- Fetches frames from Figma API
+- Parses .fig files locally in the browser (no server calls)
+- No Figma API token required
 - Parses auto-layout structures
 - Maps Figma nodes to Instant Builder concepts
 - Generates human-readable and JSON blueprints
