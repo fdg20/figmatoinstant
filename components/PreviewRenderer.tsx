@@ -81,6 +81,8 @@ function getNodeStyles(node: InstantBlueprintNode): React.CSSProperties {
   // Width percent (for columns)
   if (node.widthPercent !== undefined) {
     styles.width = `${node.widthPercent}%`;
+    styles.flexShrink = 0;
+    styles.flexGrow = 0;
   }
 
   return styles;
@@ -111,18 +113,26 @@ function formatPatternLabel(label: string): string {
 function renderNode(node: InstantBlueprintNode): React.ReactNode {
   const baseStyles = getNodeStyles(node);
   const typographyStyles = getTypographyStyles(node);
-  const combinedStyles = { ...baseStyles, ...typographyStyles };
-
+  
   // Show pattern label above sections
   const showLabel = node.label && (node.type === 'section' || node.type === 'row');
 
   switch (node.type) {
     case 'section': {
+      const sectionStyles: React.CSSProperties = {
+        ...baseStyles,
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      };
+      
       return (
-        <div key={node.name || 'section'} className="w-full flex flex-col" style={combinedStyles}>
+        <div key={node.name || 'section'} style={sectionStyles}>
           {showLabel && node.label && (
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-2">
-              {formatPatternLabel(node.label)}
+            <div className="mb-1 px-2">
+              <span className="inline-block text-[10px] font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                {formatPatternLabel(node.label)}
+              </span>
             </div>
           )}
           {node.children?.map((child, index) => (
@@ -133,16 +143,31 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
     }
 
     case 'row': {
+      const rowContainerStyles: React.CSSProperties = {
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      };
+      
+      const rowStyles: React.CSSProperties = {
+        ...baseStyles,
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+      };
+      
       return (
-        <div key={node.name || 'row'} className="w-full flex flex-col">
+        <div key={node.name || 'row'} style={rowContainerStyles}>
           {showLabel && node.label && (
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-2">
-              {formatPatternLabel(node.label)}
+            <div className="mb-1 px-2">
+              <span className="inline-block text-[10px] font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                {formatPatternLabel(node.label)}
+              </span>
             </div>
           )}
-          <div className="flex flex-row" style={combinedStyles}>
+          <div style={rowStyles}>
             {node.children?.map((child, index) => (
-              <div key={index}>{renderNode(child)}</div>
+              <div key={index} style={{ display: 'flex' }}>{renderNode(child)}</div>
             ))}
           </div>
         </div>
@@ -150,8 +175,14 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
     }
 
     case 'column': {
+      const columnStyles: React.CSSProperties = {
+        ...baseStyles,
+        display: 'flex',
+        flexDirection: 'column',
+      };
+      
       return (
-        <div key={node.name || 'column'} className="flex flex-col" style={combinedStyles}>
+        <div key={node.name || 'column'} style={columnStyles}>
           {node.children?.map((child, index) => (
             <div key={index}>{renderNode(child)}</div>
           ))}
@@ -161,8 +192,30 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
 
     case 'text': {
       const textContent = node.properties?.text || node.name || '';
+      const textStyles: React.CSSProperties = {
+        ...typographyStyles,
+        margin: 0,
+        padding: 0,
+        wordWrap: 'break-word',
+        ...baseStyles,
+      };
+      
+      // Apply default font weight if not specified
+      if (!textStyles.fontWeight && !typographyStyles.fontWeight) {
+        const fontSize = typographyStyles.fontSize 
+          ? parseFloat(typographyStyles.fontSize.toString().replace('px', ''))
+          : 16;
+        if (fontSize >= 24) {
+          textStyles.fontWeight = 700;
+        } else if (fontSize >= 18) {
+          textStyles.fontWeight = 600;
+        } else {
+          textStyles.fontWeight = 400;
+        }
+      }
+      
       return (
-        <p key={node.name || 'text'} style={combinedStyles}>
+        <p key={node.name || 'text'} style={textStyles}>
           {textContent}
         </p>
       );
@@ -174,15 +227,21 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
       const aspectRatio = node.styles?.aspectRatio;
       
       const imageStyles: React.CSSProperties = {
-        ...combinedStyles,
+        ...baseStyles,
         maxWidth: '100%',
-        height: 'auto',
-        backgroundColor: '#f3f4f6',
+        minWidth: width ? `${width}px` : '60px',
+        minHeight: height ? `${height}px` : '60px',
+        backgroundColor: baseStyles.backgroundColor || '#f3f4f6',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#9ca3af',
-        fontSize: '14px',
+        color: '#6b7280',
+        fontSize: '12px',
+        fontWeight: 500,
+        border: '2px dashed #d1d5db',
+        borderRadius: baseStyles.borderRadius || '4px',
+        overflow: 'hidden',
+        position: 'relative',
       };
 
       if (width) {
@@ -199,20 +258,44 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
         <div
           key={node.name || 'image'}
           style={imageStyles}
-          className="border border-gray-300 rounded"
         >
-          <span>{node.name || 'Image'}</span>
+          <span style={{ textAlign: 'center', padding: '8px' }}>
+            {node.name || 'Image'}
+          </span>
         </div>
       );
     }
 
     case 'button': {
       const buttonText = node.properties?.text || node.name || 'Button';
+      const buttonStyles: React.CSSProperties = {
+        ...baseStyles,
+        ...typographyStyles,
+        padding: baseStyles.padding || '12px 24px',
+        backgroundColor: baseStyles.backgroundColor || '#3b82f6',
+        color: '#ffffff',
+        border: 'none',
+        borderRadius: baseStyles.borderRadius || '6px',
+        cursor: 'pointer',
+        fontWeight: typographyStyles.fontWeight || 600,
+        fontSize: typographyStyles.fontSize || '16px',
+        display: 'inline-block',
+        textAlign: typographyStyles.textAlign || 'center',
+        transition: 'all 0.2s ease',
+      };
+      
       return (
         <button
           key={node.name || 'button'}
-          style={combinedStyles}
-          className="px-4 py-2 rounded cursor-pointer"
+          style={buttonStyles}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '0.9';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '1';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
         >
           {buttonText}
         </button>
@@ -227,7 +310,16 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
 
 export default function PreviewRenderer({ tree }: PreviewRendererProps) {
   return (
-    <div className="w-full" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div 
+      className="w-full" 
+      style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto',
+        padding: '20px',
+        backgroundColor: '#ffffff',
+        minHeight: '100%',
+      }}
+    >
       {renderNode(tree)}
     </div>
   );

@@ -60,9 +60,11 @@ export default function BlueprintDisplay({ blueprint }: BlueprintDisplayProps) {
       {/* Split Screen Layout */}
       <div className="flex-1 flex gap-4 overflow-hidden">
         {/* Left: Visual Preview */}
-        <div className="flex-1 overflow-auto border rounded-lg p-6 bg-white">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Visual Preview</h3>
-          <div className="min-h-full">
+        <div className="flex-1 overflow-auto border rounded-lg bg-gray-50">
+          <div className="sticky top-0 bg-white border-b px-6 py-3 z-10">
+            <h3 className="text-lg font-semibold text-gray-800">Visual Preview</h3>
+          </div>
+          <div className="p-6 min-h-full">
             <PreviewRenderer tree={blueprint.root} />
           </div>
         </div>
