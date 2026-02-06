@@ -120,7 +120,7 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
     case 'section': {
       return (
         <div key={node.name || 'section'} className="w-full flex flex-col" style={combinedStyles}>
-          {showLabel && (
+          {showLabel && node.label && (
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-2">
               {formatPatternLabel(node.label)}
             </div>
@@ -135,7 +135,7 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
     case 'row': {
       return (
         <div key={node.name || 'row'} className="w-full flex flex-col">
-          {showLabel && (
+          {showLabel && node.label && (
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-2">
               {formatPatternLabel(node.label)}
             </div>
