@@ -4,6 +4,8 @@ import { useState } from 'react';
 import FrameTree from '@/components/FrameTree';
 import BlueprintDisplay from '@/components/BlueprintDisplay';
 import { InstantBlueprint } from '@/types/instant';
+import { fetchFigmaFrames } from '@/lib/client/figma';
+import { generateBlueprint } from '@/lib/client/blueprint';
 
 interface Frame {
   id: string;
@@ -34,23 +36,7 @@ export default function Home() {
     setBlueprint(null);
 
     try {
-      const response = await fetch('/api/figma', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileUrl,
-          accessToken,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to load frames');
-      }
-
+      const data = await fetchFigmaFrames(fileUrl, accessToken);
       setFrames(data.frames);
       setFileKey(data.fileKey);
     } catch (err) {
@@ -66,26 +52,18 @@ export default function Home() {
     setError(null);
 
     try {
-      const response = await fetch('/api/blueprint', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          frameNode: frame.node,
-          fileKey,
-          frameId: frame.id,
-          frameName: frame.name,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate blueprint');
+      if (!fileKey) {
+        throw new Error('File key is missing');
       }
 
-      setBlueprint(data.blueprint);
+      const blueprint = generateBlueprint(
+        frame.node,
+        fileKey,
+        frame.id,
+        frame.name
+      );
+
+      setBlueprint(blueprint);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate blueprint');
       setBlueprint(null);
