@@ -1,6 +1,16 @@
 'use client';
 
 import { InstantBlueprintNode } from '@/types/instant';
+import { AnnouncementBar } from './preview/AnnouncementBar';
+import { Navbar } from './preview/Navbar';
+import { HeroSection } from './preview/HeroSection';
+import { TrustBadgeRow } from './preview/TrustBadgeRow';
+import { IconFeatureRow } from './preview/IconFeatureRow';
+import { TwoColumnFeature } from './preview/TwoColumnFeature';
+import { ImageFeatureList } from './preview/ImageFeatureList';
+import { CardGrid } from './preview/CardGrid';
+import { CTASection } from './preview/CTASection';
+import { EmailForm } from './preview/EmailForm';
 
 interface PreviewRendererProps {
   tree: InstantBlueprintNode;
@@ -89,33 +99,64 @@ function getNodeStyles(node: InstantBlueprintNode): React.CSSProperties {
 }
 
 /**
- * Format pattern label for display
+ * Map label to component name
  */
-function formatPatternLabel(label: string): string {
+function normalizeLabel(label: string): string {
   const labelMap: Record<string, string> = {
-    'announcement-bar': 'Announcement Bar',
-    'navbar': 'Navbar',
-    'hero-section': 'Hero Section',
-    'trust-badge-row': 'Trust Badge Row',
-    'icon-feature-row': 'Icon Feature Row',
-    'two-column-feature': 'Two Column Feature',
-    'image-feature-list': 'Image + Feature List',
-    'card-grid': 'Card Grid (reviews)',
-    'cta-section': 'CTA Section',
-    'email-form': 'Email Form',
+    'announcement-bar': 'announcement-bar',
+    'navbar': 'navbar',
+    'hero-section': 'hero-section',
+    'trust-badge-row': 'trust-badge-row',
+    'icon-feature-row': 'icon-feature-row',
+    'two-column-feature': 'two-column-feature',
+    'image-feature-list': 'image-feature-list',
+    'card-grid': 'card-grid',
+    'cta-section': 'cta-section',
+    'email-form': 'email-form',
   };
-  return labelMap[label] || label;
+  return labelMap[label.toLowerCase()] || label.toLowerCase();
 }
 
 /**
- * Recursively render a BlueprintNode tree
+ * Render semantic component based on label
  */
-function renderNode(node: InstantBlueprintNode): React.ReactNode {
+function renderSemanticComponent(node: InstantBlueprintNode): React.ReactNode {
+  if (!node.label) return null;
+  
+  const normalizedLabel = normalizeLabel(node.label);
+  
+  switch (normalizedLabel) {
+    case 'announcement-bar':
+      return <AnnouncementBar node={node} />;
+    case 'navbar':
+      return <Navbar node={node} />;
+    case 'hero-section':
+      return <HeroSection node={node} />;
+    case 'trust-badge-row':
+      return <TrustBadgeRow node={node} />;
+    case 'icon-feature-row':
+      return <IconFeatureRow node={node} />;
+    case 'two-column-feature':
+      return <TwoColumnFeature node={node} />;
+    case 'image-feature-list':
+      return <ImageFeatureList node={node} />;
+    case 'card-grid':
+      return <CardGrid node={node} />;
+    case 'cta-section':
+      return <CTASection node={node} />;
+    case 'email-form':
+      return <EmailForm node={node} />;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Render generic node (for nodes without semantic labels)
+ */
+export function renderGenericNode(node: InstantBlueprintNode): React.ReactNode {
   const baseStyles = getNodeStyles(node);
   const typographyStyles = getTypographyStyles(node);
-  
-  // Show pattern label above sections
-  const showLabel = node.label && (node.type === 'section' || node.type === 'row');
 
   switch (node.type) {
     case 'section': {
@@ -124,52 +165,36 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
+        padding: baseStyles.padding || '80px 20px',
+        backgroundColor: baseStyles.backgroundColor || '#ffffff',
+        maxWidth: '1100px',
+        margin: '0 auto',
       };
       
       return (
-        <div key={node.name || 'section'} style={sectionStyles}>
-          {showLabel && node.label && (
-            <div className="mb-1 px-2">
-              <span className="inline-block text-[10px] font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded border border-blue-200">
-                {formatPatternLabel(node.label)}
-              </span>
-            </div>
-          )}
+        <section key={node.name || 'section'} style={sectionStyles}>
           {node.children?.map((child, index) => (
-            <div key={index}>{renderNode(child)}</div>
+            <div key={index}>{renderGenericNode(child)}</div>
           ))}
-        </div>
+        </section>
       );
     }
 
     case 'row': {
-      const rowContainerStyles: React.CSSProperties = {
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      };
-      
       const rowStyles: React.CSSProperties = {
         ...baseStyles,
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'flex-start',
+        gap: baseStyles.gap || '20px',
+        flexWrap: 'wrap',
       };
       
       return (
-        <div key={node.name || 'row'} style={rowContainerStyles}>
-          {showLabel && node.label && (
-            <div className="mb-1 px-2">
-              <span className="inline-block text-[10px] font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded border border-blue-200">
-                {formatPatternLabel(node.label)}
-              </span>
-            </div>
-          )}
-          <div style={rowStyles}>
-            {node.children?.map((child, index) => (
-              <div key={index} style={{ display: 'flex' }}>{renderNode(child)}</div>
-            ))}
-          </div>
+        <div key={node.name || 'row'} style={rowStyles}>
+          {node.children?.map((child, index) => (
+            <div key={index} style={{ display: 'flex' }}>{renderGenericNode(child)}</div>
+          ))}
         </div>
       );
     }
@@ -184,7 +209,7 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
       return (
         <div key={node.name || 'column'} style={columnStyles}>
           {node.children?.map((child, index) => (
-            <div key={index}>{renderNode(child)}</div>
+            <div key={index}>{renderGenericNode(child)}</div>
           ))}
         </div>
       );
@@ -238,10 +263,8 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
         color: '#6b7280',
         fontSize: '12px',
         fontWeight: 500,
-        border: '2px dashed #d1d5db',
-        borderRadius: baseStyles.borderRadius || '4px',
+        borderRadius: baseStyles.borderRadius || '8px',
         overflow: 'hidden',
-        position: 'relative',
       };
 
       if (width) {
@@ -272,30 +295,21 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
         ...baseStyles,
         ...typographyStyles,
         padding: baseStyles.padding || '12px 24px',
-        backgroundColor: baseStyles.backgroundColor || '#3b82f6',
+        backgroundColor: baseStyles.backgroundColor || '#111827',
         color: '#ffffff',
         border: 'none',
-        borderRadius: baseStyles.borderRadius || '6px',
+        borderRadius: baseStyles.borderRadius || '8px',
         cursor: 'pointer',
         fontWeight: typographyStyles.fontWeight || 600,
         fontSize: typographyStyles.fontSize || '16px',
         display: 'inline-block',
         textAlign: typographyStyles.textAlign || 'center',
-        transition: 'all 0.2s ease',
       };
       
       return (
         <button
           key={node.name || 'button'}
           style={buttonStyles}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '0.9';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '1';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
         >
           {buttonText}
         </button>
@@ -303,9 +317,22 @@ function renderNode(node: InstantBlueprintNode): React.ReactNode {
     }
 
     default:
-      // Ignore unsupported nodes
       return null;
   }
+}
+
+/**
+ * Recursively render a BlueprintNode tree
+ */
+function renderNode(node: InstantBlueprintNode): React.ReactNode {
+  // Try to render semantic component first
+  const semanticComponent = renderSemanticComponent(node);
+  if (semanticComponent) {
+    return semanticComponent;
+  }
+
+  // Fall back to generic rendering
+  return renderGenericNode(node);
 }
 
 export default function PreviewRenderer({ tree }: PreviewRendererProps) {
@@ -313,9 +340,8 @@ export default function PreviewRenderer({ tree }: PreviewRendererProps) {
     <div 
       className="w-full" 
       style={{ 
-        maxWidth: '1200px', 
+        maxWidth: '1100px', 
         margin: '0 auto',
-        padding: '20px',
         backgroundColor: '#ffffff',
         minHeight: '100%',
       }}
