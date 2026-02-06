@@ -67,6 +67,7 @@ export function blueprintToMarkdown(node: InstantBlueprintNode, depth: number = 
   
   const propsStr = props.length > 0 ? ` (${props.join(', ')})` : '';
   const nameStr = node.name ? ` "${node.name}"` : '';
+  const labelStr = node.label ? ` [${node.label}]` : '';
   
   // Format based on node type and depth
   let header = '';
@@ -74,22 +75,22 @@ export function blueprintToMarkdown(node: InstantBlueprintNode, depth: number = 
   
   switch (node.type) {
     case 'section':
-      header = `${indent}## Section${nameStr}${propsStr}`;
+      header = `${indent}## Section${nameStr}${labelStr}${propsStr}`;
       break;
     case 'row':
-      header = `${indent}- Row${nameStr}${propsStr}`;
+      header = `${indent}- Row${nameStr}${labelStr}${propsStr}`;
       break;
     case 'column':
-      header = `${indent}  - Column${nameStr}${propsStr}`;
+      header = `${indent}  - Column${nameStr}${labelStr}${propsStr}`;
       break;
     case 'text':
-      header = `${indent}    - Text${nameStr}${propsStr}`;
+      header = `${indent}    - Text${nameStr}${labelStr}${propsStr}`;
       break;
     case 'button':
-      header = `${indent}    - Button${nameStr}${propsStr}`;
+      header = `${indent}    - Button${nameStr}${labelStr}${propsStr}`;
       break;
     case 'image':
-      header = `${indent}    - Image${nameStr}${propsStr}`;
+      header = `${indent}    - Image${nameStr}${labelStr}${propsStr}`;
       break;
   }
   

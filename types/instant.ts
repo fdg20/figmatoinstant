@@ -15,6 +15,7 @@ export interface TypographyStyle {
 export interface InstantBlueprintNode {
   type: InstantNodeType;
   name?: string;
+  label?: string; // Semantic pattern label (e.g., "announcement-bar", "navbar", "hero-section")
   widthPercent?: number; // For columns
   styles?: {
     padding?: number; // Single value for uniform padding, or object for individual sides

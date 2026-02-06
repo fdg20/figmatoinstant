@@ -232,8 +232,9 @@ export function formatBlueprintForDisplay(
 
   const propsStr = props.length > 0 ? ` (${props.join(', ')})` : '';
   const nameStr = node.name ? ` "${node.name}"` : '';
+  const labelStr = node.label ? ` [${node.label}]` : '';
   
-  lines.push(`${indentStr}${node.type.toUpperCase()}${nameStr}${propsStr}`);
+  lines.push(`${indentStr}${node.type.toUpperCase()}${nameStr}${labelStr}${propsStr}`);
 
   // Format children
   if (node.children && node.children.length > 0) {

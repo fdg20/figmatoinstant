@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildBlueprintTree } from '@/lib/parser';
+import { applyPatternLabels } from '@/lib/parser/patterns';
 import { FigmaNode } from '@/types/figma';
 import { InstantBlueprint } from '@/types/instant';
 
@@ -32,6 +33,9 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Apply pattern recognition labels
+    applyPatternLabels(rootNode);
 
     const blueprint: InstantBlueprint = {
       root: rootNode,
