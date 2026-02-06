@@ -4,7 +4,7 @@ import { useState } from 'react';
 import FrameTree from '@/components/FrameTree';
 import BlueprintDisplay from '@/components/BlueprintDisplay';
 import { InstantBlueprint } from '@/types/instant';
-import { parseFigFile } from '@/lib/figma/parseFigFile';
+import { parseFigFileInWorker } from '@/lib/figma/parseFigFileInWorker';
 import { generateBlueprint } from '@/lib/client/blueprint';
 import { FigmaNode } from '@/types/figma';
 
@@ -41,11 +41,14 @@ export default function Home() {
     setFileName(file.name);
 
     try {
+      // Yield so the loading UI can paint before we block on file read
+      await new Promise((r) => setTimeout(r, 0));
+
       // Read file as ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
 
-      // Parse .fig file
-      const { document } = parseFigFile(arrayBuffer);
+      // Parse .fig file in a Web Worker to keep the page responsive
+      const { document } = await parseFigFileInWorker(arrayBuffer);
 
       // Extract frames with auto-layout
       const extractedFrames: Frame[] = [];
@@ -140,6 +143,7 @@ export default function Home() {
               <div className="text-center py-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
                 <p className="text-gray-600 text-sm">Parsing .fig file...</p>
+                <p className="text-gray-400 text-xs mt-1">Large files may take a moment</p>
               </div>
             )}
           </div>
