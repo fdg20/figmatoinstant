@@ -1,56 +1,49 @@
 'use client';
 
 import { useState } from 'react';
-import FrameTree from '@/components/FrameTree';
 import BlueprintDisplay from '@/components/BlueprintDisplay';
 import { InstantBlueprint } from '@/types/instant';
-import { parseFigFileInWorker } from '@/lib/figma/parseFigFileInWorker';
-import { generateBlueprint } from '@/lib/client/blueprint';
-import { FigmaNode } from '@/types/figma';
-
-interface Frame {
-  id: string;
-  name: string;
-  node: any;
-}
-
-type Source = 'fig' | 'url';
 
 export default function Home() {
-  const [source, setSource] = useState<Source | null>(null);
   const [figmaUrl, setFigmaUrl] = useState('');
-  const [frames, setFrames] = useState<Frame[]>([]);
-  const [selectedFrame, setSelectedFrame] = useState<Frame | null>(null);
   const [blueprint, setBlueprint] = useState<InstantBlueprint | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
 
-  const handleFigmaUrlSubmit = async () => {
-    const url = figmaUrl.trim();
-    if (!url) {
-      setError('Please enter a Figma URL');
-      return;
-    }
-    if (!url.includes('node-id=')) {
-      setError('URL must include a frame (node-id). In Figma, right‑click the frame → Copy link to selection.');
-      return;
-    }
-
+  const loadBlueprint = async (url: string, forceRefresh = false) => {
     setLoading(true);
     setError(null);
-    setSource('url');
-    setFrames([]);
-    setSelectedFrame(null);
-    setBlueprint(null);
 
     try {
       const res = await fetch('/api/figma/blueprint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, forceRefresh }),
       });
-      const data = await res.json();
+
+      const contentType = res.headers.get('content-type');
+      const text = await res.text();
+
+      if (!contentType?.includes('application/json')) {
+        setError(
+          'Could not reach the server. The Figma URL feature needs a running server. ' +
+            'If you’re on the static site (e.g. GitHub Pages), run the app locally: npm run dev — and set FIGMA_ACCESS_TOKEN in .env.'
+        );
+        setBlueprint(null);
+        return;
+      }
+
+      let data: { error?: string } & InstantBlueprint;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setError(
+          'Server returned an invalid response. Run the app locally (npm run dev) with FIGMA_ACCESS_TOKEN set for the Figma URL feature.'
+        );
+        setBlueprint(null);
+        return;
+      }
+
       if (!res.ok) {
         throw new Error(data.error || 'Failed to load blueprint');
       }
@@ -63,103 +56,28 @@ export default function Home() {
     }
   };
 
+  const handleFigmaUrlSubmit = async () => {
+    const url = figmaUrl.trim();
+    if (!url) {
+      setError('Please enter a Figma URL');
+      return;
+    }
+    if (!url.includes('node-id=')) {
+      setError(
+        'URL must include a frame (node-id). In Figma, select your frame → right‑click → Copy link to selection.'
+      );
+      return;
+    }
+    setBlueprint(null);
+    await loadBlueprint(url, false);
+  };
+
   const handleRefreshFromFigma = async () => {
     if (!figmaUrl.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/figma/blueprint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: figmaUrl.trim(), forceRefresh: true }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to refresh');
-      }
-      setBlueprint(data as InstantBlueprint);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to refresh from Figma');
-    } finally {
-      setLoading(false);
-    }
+    await loadBlueprint(figmaUrl.trim(), true);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    if (!file.name.endsWith('.fig')) {
-      setError('Please upload a .fig file');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setSource('fig');
-    setFigmaUrl('');
-    setFrames([]);
-    setSelectedFrame(null);
-    setBlueprint(null);
-    setFileName(file.name);
-
-    try {
-      await new Promise((r) => setTimeout(r, 0));
-      const { document } = await parseFigFileInWorker(file);
-
-      const extractedFrames: Frame[] = [];
-      function traverseNodes(node: FigmaNode) {
-        if (node.type === 'FRAME' && node.layoutMode) {
-          extractedFrames.push({
-            id: node.id,
-            name: node.name,
-            node: node,
-          });
-        }
-        if (node.children) {
-          for (const child of node.children) {
-            traverseNodes(child);
-          }
-        }
-      }
-      traverseNodes(document);
-
-      if (extractedFrames.length === 0) {
-        setError('No frames with Auto-layout found in this file');
-      } else {
-        setFrames(extractedFrames);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse .fig file');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSelectFrame = async (frame: Frame) => {
-    setSelectedFrame(frame);
-    setLoading(true);
-    setError(null);
-
-    try {
-      const bp = generateBlueprint(
-        frame.node,
-        fileName || 'local-file',
-        frame.id,
-        frame.name
-      );
-      setBlueprint(bp);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate blueprint');
-      setBlueprint(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const showRefreshButton = source === 'url' && blueprint != null && figmaUrl.trim().length > 0;
+  const showRefreshButton = blueprint != null && figmaUrl.trim().length > 0;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -173,10 +91,8 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Input Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="space-y-6">
-            {/* Figma URL — one call per project, cached on server */}
+          <div className="space-y-4">
             <div>
               <label htmlFor="figmaUrl" className="block text-sm font-medium text-gray-700 mb-2">
                 Figma URL (frame link)
@@ -200,38 +116,12 @@ export default function Home() {
                   Load blueprint
                 </button>
               </div>
-              <p className="mt-2 text-xs text-gray-500">
-                Paste a link to a specific frame (with node-id). Blueprint is cached — no API calls when you preview or re-open.
-              </p>
-            </div>
-
-            <div className="border-t border-gray-200 pt-4">
-              <span className="text-sm text-gray-500">Or upload a .fig file</span>
-            </div>
-            <div>
-              <label htmlFor="figFile" className="block text-sm font-medium text-gray-700 mb-2">
-                Upload your Figma .fig file
-              </label>
-              <input
-                id="figFile"
-                type="file"
-                accept=".fig"
-                onChange={handleFileUpload}
-                disabled={loading}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-              />
-              <p className="mt-2 text-xs text-gray-500">
-                In Figma: File → Save local copy (.fig)
-              </p>
             </div>
 
             {loading && (
               <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                <p className="text-gray-600 text-sm">
-                  {source === 'url' ? 'Loading blueprint...' : 'Parsing .fig file...'}
-                </p>
-                <p className="text-gray-400 text-xs mt-1">Large files may take a moment</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2" />
+                <p className="text-gray-600 text-sm">Loading blueprint…</p>
               </div>
             )}
           </div>
@@ -243,9 +133,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Main Content: from URL = single blueprint, no frame list */}
-        {source === 'url' && blueprint != null && (
-          <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 min-h-[800px]">
+        {blueprint != null && (
+          <div className="grid grid-cols-1 gap-6 min-h-[800px]">
             <div className="bg-white rounded-lg shadow-md p-6 overflow-hidden flex flex-col">
               {showRefreshButton && (
                 <div className="mb-4 flex justify-end">
@@ -264,41 +153,20 @@ export default function Home() {
           </div>
         )}
 
-        {/* Main Content: from .fig = frame tree + blueprint */}
-        {source === 'fig' && frames.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[800px]">
-            <div className="bg-white rounded-lg shadow-md p-6 overflow-hidden flex flex-col">
-              <FrameTree
-                frames={frames}
-                onSelectFrame={handleSelectFrame}
-                selectedFrameId={selectedFrame?.id}
-              />
-            </div>
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6 overflow-hidden flex flex-col">
-              {loading && selectedFrame ? (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Generating blueprint...</p>
-                  </div>
-                </div>
-              ) : (
-                <BlueprintDisplay blueprint={blueprint} />
-              )}
-            </div>
-          </div>
-        )}
-
-        {!blueprint && frames.length === 0 && !loading && (
+        {!blueprint && !loading && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-blue-900 mb-2">How to use</h3>
             <ol className="list-decimal list-inside space-y-2 text-blue-800">
-              <li><strong>Figma URL:</strong> Copy link to a frame (node-id in URL), paste above, click Load blueprint. Cached on server — no API calls when previewing.</li>
-              <li><strong>Or .fig file:</strong> File → Save local copy (.fig), upload, then select a frame.</li>
+              <li>
+                <strong>Copy a link to your frame:</strong> In Figma, select the frame you want in the layers panel or on the canvas → right‑click → <strong>Copy link to selection</strong>. (You can also use the Share button and copy the link that includes the frame.)
+              </li>
+              <li>
+                <strong>Paste and load:</strong> Paste the link above and click <strong>Load blueprint</strong>. The blueprint is cached on the server — no extra API calls when you preview or re-open.
+              </li>
             </ol>
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
               <p className="text-sm text-yellow-800">
-                <strong>Note:</strong> Only frames with Auto-layout are supported. For URL, set FIGMA_ACCESS_TOKEN in .env.
+                <strong>Note:</strong> Only frames with Auto-layout are supported. Set <code className="bg-yellow-100 px-1 rounded">FIGMA_ACCESS_TOKEN</code> in <code className="bg-yellow-100 px-1 rounded">.env</code> when running locally.
               </p>
             </div>
           </div>
