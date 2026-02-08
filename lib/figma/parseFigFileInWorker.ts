@@ -3,9 +3,10 @@
 import { FigmaNode } from '@/types/figma';
 
 /**
- * Parse a .fig file in a Web Worker so the main thread stays responsive.
+ * Parse a .fig file in a Web Worker: file read + parse both run off the main thread
+ * so the UI stays responsive and we don't block on disk I/O.
  */
-export function parseFigFileInWorker(buffer: ArrayBuffer): Promise<{ document: FigmaNode }> {
+export function parseFigFileInWorker(file: File): Promise<{ document: FigmaNode }> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(
       new URL('./figParser.worker.ts', import.meta.url),
@@ -26,7 +27,7 @@ export function parseFigFileInWorker(buffer: ArrayBuffer): Promise<{ document: F
       reject(err);
     };
 
-    // Transfer the buffer to the worker so main thread doesn't hold a copy
-    worker.postMessage({ type: 'parse', buffer }, [buffer]);
+    // Pass the File to the worker; it will read arrayBuffer() and parse there
+    worker.postMessage({ type: 'parse', file });
   });
 }

@@ -45,3 +45,16 @@ export interface InstantBlueprint {
     generatedAt?: string;
   };
 }
+
+/** Stored in /data/figma-cache/{fileKey}-{frameId}.json — parsed blueprint only, never raw Figma JSON */
+export interface CachedBlueprint {
+  blueprintTree: InstantBlueprintNode;
+  semanticLabels: Record<string, string>; // node name/path -> label
+  typographyMap: Record<string, TypographyStyle>; // key -> typography style
+  metadata: {
+    figmaFileKey: string;
+    figmaFrameId: string;
+    figmaFrameName: string;
+    cachedAt: string;
+  };
+}
